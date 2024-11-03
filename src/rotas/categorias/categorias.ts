@@ -13,7 +13,7 @@ import { ValidationCluster } from '../../Validation/ItemValidation/ItemValidatio
 
 export const categoryRouter = Router();
 
-async function pegaCategorias(req: Request, res: Response<Categoria[]>) {
+async function pegaCategorias(req: Request<unknown, Categoria[], unknown, QueryFilter<Categoria>>, res: Response<Categoria[]>) {
 	const categories: Categoria[] = await ContextFactory.fromRequest(
 		'categorias',
 		connection('categorias').whereNot('status', ItemStatus.DELETADO),
@@ -172,7 +172,7 @@ export type CategoriasDef = Tspec.DefineApiSpec<{
 			delete: {
 				summary: 'Exclui uma categoria em especifico';
 				responses: ApiDeleteStatus<{ 200: boolean }>;
-				handler: typeof UpdateCategoria;
+				handler: typeof DeletaCategoria;
 			};
 		};
 	};

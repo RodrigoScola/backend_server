@@ -1,136 +1,171 @@
 import { Request, Response, Router } from 'express';
+import { Tspec } from 'tspec';
 import { connection } from '../../db';
 import { ContextBuilder } from '../../lib/context/ContextBuilder';
 import { ContextFactory } from '../../lib/context/DatabaseContext';
 import { BadRequestError, InternalError, InvalidItemError, NotFoundError } from '../../lib/ErrorHandling/ErrorHandler';
 import { logger } from '../../server';
+import { ApiDeleteStatus, ApiGetStatus, ApiPostStatus, ApiUpdateStatus, QueryFilter } from '../../types/api_types';
 import { Contrato, ItemStatus, NewContrato } from '../../types/db_types';
 import { BoundsValidator } from '../../Validation/ItemValidation/BoundsValidator';
 import { ValidationCluster } from '../../Validation/ItemValidation/ItemValidationCluster';
 
 export const contratoRouter = Router();
 
-contratoRouter
-	.get('/', async (req: Request, res: Response<Contrato[]>) => {
-		const contratos: Contrato[] = await ContextFactory.fromRequest(
-			'contrato',
-			connection('contrato').whereNot('status', ItemStatus.DELETADO),
-			req
-		)
-			.SetParameters(ContextBuilder.FromParameters(req.query, Contrato))
-			.Build();
+async function pegaContratos(req: Request<unknown, Contrato[], undefined, QueryFilter<Contrato>>, res: Response<Contrato[]>) {
+	const contratos: Contrato[] = await ContextFactory.fromRequest('contrato', connection('contrato').whereNot('status', ItemStatus.DELETADO), req)
+		.SetParameters(ContextBuilder.FromParameters(req.query, Contrato))
+		.Build();
 
-		res.json(contratos);
-	})
-	.get('/:id', async (req, res) => {
-		assert.ok(req.params.id, 'Id Nao Especificado', BadRequestError);
+	res.json(contratos);
+}
 
-		const contratoId = Number(req.params.id);
-		assert.ok(contratoId, 'Id do Contrato Invalido', BadRequestError);
+async function pegaContrato(req: Request<{ id: string }, Contrato>, res: Response<Contrato>) {
+	assert.ok(req.params.id, 'Id Nao Especificado', BadRequestError);
 
-		const contrato = await ContextFactory.fromRequest(
-			'contrato',
-			connection('contrato').where('id', contratoId).whereNot('status', ItemStatus.DELETADO),
-			req
-		)
-			.Build()
-			.first();
+	const contratoId = Number(req.params.id);
+	assert.ok(contratoId, 'Id do Contrato Invalido', BadRequestError);
 
-		assert.ok(contrato, 'Contrato Nao achado', NotFoundError);
+	const contrato = await ContextFactory.fromRequest(
+		'contrato',
+		connection('contrato').where('id', contratoId).whereNot('status', ItemStatus.DELETADO),
+		req
+	)
+		.Build()
+		.first();
 
-		res.json(contrato);
-	})
-	.post('/', async (req, res) => {
-		assert.ok(req.body, 'Corpo do contrato invalido', BadRequestError);
+	assert.ok(contrato, 'Contrato Nao achado', NotFoundError);
 
-		const cleaned = req.body;
+	res.json(contrato);
+}
 
-		const validator = new ValidationCluster().add(new BoundsValidator(NewContrato, { min: -1, max: 832901803928 }));
+async function postaContrato(req: Request<unknown, Contrato, NewContrato>, res: Response<Contrato>) {
+	assert.ok(req.body, 'Corpo do contrato invalido', BadRequestError);
 
-		if (!validator.isValid(cleaned)) {
-			const errors = validator.getErrors();
-			logger.error('nao pode criar contrato', JSON.stringify(errors, null, 1));
-			throw new InvalidItemError(errors);
-		}
+	const cleaned = req.body;
 
-		let contrato: Contrato | undefined;
+	const validator = new ValidationCluster().add(new BoundsValidator(NewContrato, { min: -1, max: 832901803928 }));
 
-		try {
-			[contrato] = await connection('contrato').insert(cleaned).returning('*');
-		} catch (err) {
-			logger.error('nao pode criar contrato', err);
-		}
-		assert.ok(contrato, 'nao pode criar contrato', InternalError);
+	if (!validator.isValid(cleaned)) {
+		const errors = validator.getErrors();
+		logger.error('nao pode criar contrato', JSON.stringify(errors, null, 1));
+		throw new InvalidItemError(errors);
+	}
 
-		res.json(contrato);
-	})
-	.put('/:id', async (req, res) => {
-		assert.ok(req.params.id, 'Id Nao Especificado', BadRequestError);
+	let contrato: Contrato | undefined;
 
-		const contratoId = Number(req.params.id);
-		assert.ok(contratoId, 'Id do contrato Invalido', BadRequestError);
-		assert.ok(req.body, 'Corpo da contrato invalido', BadRequestError);
+	try {
+		[contrato] = await connection('contrato').insert(cleaned).returning('*');
+	} catch (err) {
+		logger.error('nao pode criar contrato', err);
+	}
+	assert.ok(contrato, 'nao pode criar contrato', InternalError);
 
-		const prevContrato = await ContextFactory.fromRequest(
-			'contrato',
-			connection('contrato').andWhere('id', contratoId).whereNot('status', ItemStatus.DELETADO),
-			req
-		)
-			.Build()
-			.first();
+	res.json(contrato);
+}
 
-		assert.ok(prevContrato, 'Contrato Nao achado', NotFoundError);
+async function UpdateContrato(req: Request<{ id: number }, Contrato>, res: Response<Contrato>) {
+	assert.ok(req.params.id, 'Id Nao Especificado', BadRequestError);
 
-		const cleaned = req.body;
+	const contratoId = Number(req.params.id);
+	assert.ok(contratoId, 'Id do contrato Invalido', BadRequestError);
+	assert.ok(req.body, 'Corpo da contrato invalido', BadRequestError);
 
-		const validator = new ValidationCluster().add(new BoundsValidator(NewContrato, { min: -1, max: 832901803928 }));
+	const prevContrato = await ContextFactory.fromRequest(
+		'contrato',
+		connection('contrato').andWhere('id', contratoId).whereNot('status', ItemStatus.DELETADO),
+		req
+	)
+		.Build()
+		.first();
 
-		if (!validator.isValid(cleaned)) {
-			const errors = validator.getErrors();
-			logger.error('nao pode criar contrato', JSON.stringify(errors, null, 1));
-			throw new InvalidItemError(errors);
-		}
+	assert.ok(prevContrato, 'Contrato Nao achado', NotFoundError);
 
-		//@ts-ignore
-		cleaned.id = contratoId;
+	const cleaned = req.body;
 
-		let contrato: Contrato | undefined;
+	const validator = new ValidationCluster().add(new BoundsValidator(NewContrato, { min: -1, max: 832901803928 }));
 
-		try {
-			[contrato] = await connection('contrato')
-				.update(cleaned)
-				.where('id', contratoId)
-				.whereNot('status', ItemStatus.DELETADO)
-				.returning('*');
-		} catch (err) {
-			logger.error('nao pode criar contrato', err);
-		}
-		assert.ok(contrato, 'nao pode criar contrato', InternalError);
+	if (!validator.isValid(cleaned)) {
+		const errors = validator.getErrors();
+		logger.error('nao pode criar contrato', JSON.stringify(errors, null, 1));
+		throw new InvalidItemError(errors);
+	}
 
-		res.json(contrato);
-	})
-	.delete('/:id', async (req, res) => {
-		assert.ok(req.params.id, 'Id Nao Especificado', BadRequestError);
+	//@ts-ignore
+	cleaned.id = contratoId;
 
-		const contratoId = Number(req.params.id);
-		assert.ok(contratoId, 'Id do contrato Invalido', BadRequestError);
+	let contrato: Contrato | undefined;
 
-		const contrato = await ContextFactory.fromRequest(
-			'contrato',
-			connection('contrato').whereNot('status', ItemStatus.DELETADO).andWhere('id', contratoId),
-			req
-		)
-			.Build()
-			.first();
+	try {
+		[contrato] = await connection('contrato').update(cleaned).where('id', contratoId).whereNot('status', ItemStatus.DELETADO).returning('*');
+	} catch (err) {
+		logger.error('nao pode criar contrato', err);
+	}
+	assert.ok(contrato, 'nao pode criar contrato', InternalError);
 
-		assert.ok(contrato, 'Contrato Nao achado', NotFoundError);
+	res.json(contrato);
+}
 
-		let deleted: Contrato | undefined;
-		try {
-			[deleted] = await connection('contrato').update('status', ItemStatus.DELETADO).where('id', contratoId).returning('*');
-		} catch (err) {
-			logger.error('nao pode deletar o contrato', err);
-		}
+async function deletaContrato(req: Request<{ id: number }, boolean>, res: Response<boolean>) {
+	assert.ok(req.params.id, 'Id Nao Especificado', BadRequestError);
 
-		res.json(Boolean(deleted));
-	});
+	const contratoId = Number(req.params.id);
+	assert.ok(contratoId, 'Id do contrato Invalido', BadRequestError);
+
+	const contrato = await ContextFactory.fromRequest(
+		'contrato',
+		connection('contrato').whereNot('status', ItemStatus.DELETADO).andWhere('id', contratoId),
+		req
+	)
+		.Build()
+		.first();
+
+	assert.ok(contrato, 'Contrato Nao achado', NotFoundError);
+
+	let deleted: Contrato | undefined;
+	try {
+		[deleted] = await connection('contrato').update('status', ItemStatus.DELETADO).where('id', contratoId).returning('*');
+	} catch (err) {
+		logger.error('nao pode deletar o contrato', err);
+	}
+
+	res.json(Boolean(deleted));
+}
+
+contratoRouter.get('/', pegaContratos).get('/:id', pegaContrato).post('/', postaContrato).put('/:id', UpdateContrato).delete('/:id', deletaContrato);
+
+export type ContratoDef = Tspec.DefineApiSpec<{
+	basePath: '/contratos';
+	paths: {
+		'/': {
+			get: {
+				summary: 'pega todos os contratos';
+				responses: ApiGetStatus<{ 200: Contrato[] }>;
+				query: QueryFilter<Contrato>;
+				handler: typeof pegaContrato;
+			};
+			post: {
+				summary: 'posta um novo contrato';
+				responses: ApiPostStatus<{ 200: Contrato }>;
+				handler: typeof postaContrato;
+			};
+		};
+		'/{id}': {
+			get: {
+				summary: 'Pega um contrato especifico';
+				responses: ApiGetStatus<{ 200: Contrato }>;
+				handler: typeof pegaContrato;
+			};
+			put: {
+				summary: 'Atualiza um contrato';
+				responses: ApiUpdateStatus<{ 200: Contrato }>;
+				handler: typeof UpdateContrato;
+			};
+			delete: {
+				summary: 'Exclui um contrato';
+				responses: ApiDeleteStatus<{ 200: boolean }>;
+				handler: typeof deletaContrato;
+			};
+		};
+	};
+}>;

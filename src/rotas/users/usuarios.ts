@@ -2,7 +2,12 @@ import { Request, Response, Router } from 'express';
 import { connection } from '../../db';
 import { ContextBuilder } from '../../lib/context/ContextBuilder';
 import { ContextFactory } from '../../lib/context/DatabaseContext';
-import { BadRequestError, InternalError, InvalidItemError, NotFoundError } from '../../lib/ErrorHandling/ErrorHandler';
+import {
+	BadRequestError,
+	InternalError,
+	InvalidItemError,
+	NotFoundError,
+} from '../../lib/ErrorHandling/ErrorHandler';
 import { logger } from '../../server';
 import { ItemStatus, NewUsuario, Usuario } from '../../types/db_types';
 import { BoundsValidator } from '../../Validation/ItemValidation/BoundsValidator';
@@ -51,7 +56,9 @@ usuariosRouter
 			cleaned.categorias = JSON.stringify(cleaned.categorias) as unknown as number[];
 		}
 
-		const validator = new ValidationCluster().add(new BoundsValidator(NewUsuario, { min: -1, max: 832901803928 }));
+		const validator = new ValidationCluster().add(
+			new BoundsValidator(NewUsuario, { min: -1, max: 832901803928 })
+		);
 
 		if (!validator.isValid(cleaned)) {
 			const errors = validator.getErrors();
@@ -89,7 +96,9 @@ usuariosRouter
 
 		const cleaned = req.body;
 
-		const validator = new ValidationCluster().add(new BoundsValidator(NewUsuario, { min: -1, max: 832901803928 }));
+		const validator = new ValidationCluster().add(
+			new BoundsValidator(NewUsuario, { min: -1, max: 832901803928 })
+		);
 
 		if (!validator.isValid(cleaned)) {
 			const errors = validator.getErrors();
@@ -103,7 +112,11 @@ usuariosRouter
 		let usuario: Usuario | undefined;
 
 		try {
-			[usuario] = await connection('usuarios').update(cleaned).where('id', usuarioId).whereNot('status', ItemStatus.DELETADO).returning('*');
+			[usuario] = await connection('usuarios')
+				.update(cleaned)
+				.where('id', usuarioId)
+				.whereNot('status', ItemStatus.DELETADO)
+				.returning('*');
 		} catch (err) {
 			logger.error('nao pode criar usuario', err);
 		}
@@ -129,7 +142,10 @@ usuariosRouter
 
 		let deleted: Usuario | undefined;
 		try {
-			[deleted] = await connection('usuarios').update('status', ItemStatus.DELETADO).where('id', usuarioId).returning('*');
+			[deleted] = await connection('usuarios')
+				.update('status', ItemStatus.DELETADO)
+				.where('id', usuarioId)
+				.returning('*');
 		} catch (err) {
 			logger.error('nao pode deletar a usuario', err);
 		}
