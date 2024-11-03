@@ -1,4 +1,4 @@
-import { asserts } from './src/lib/Assert/assert';
+import { asserts } from './lib/assert/assert';
 
 declare const global: NodeJS.Global & typeof globalThis;
 

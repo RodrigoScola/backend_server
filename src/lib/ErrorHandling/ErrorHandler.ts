@@ -6,7 +6,7 @@ import { Validation } from '../../Validation/Validation';
 import { __DEV__ } from '../../constants';
 import { logger } from '../../server';
 
-enum HTTPCodes {
+export enum HTTPCodes {
 	OK = 200,
 	NO_CONTENT = 204,
 	BAD_REQUEST = 400,

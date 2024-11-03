@@ -17,7 +17,7 @@ export const logger = new Logging(createLogger({ stout: true }));
 initServer(app);
 
 function initServer(app?: Application) {
-	if (!app) return;
+	assert.ok(app, 'invalid application');
 
 	const EFunction: ErrorRequestHandler = (
 		err: Error,
