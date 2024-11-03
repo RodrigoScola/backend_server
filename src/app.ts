@@ -3,6 +3,7 @@ import express from 'express';
 import fs from 'fs';
 import morgan from 'morgan';
 import path from 'path';
+import swaggerui from 'swagger-ui-express';
 import { __PROD__ } from './constants';
 import { categoryRouter } from './rotas/categorias/categorias';
 import { contratoRouter } from './rotas/contrato/contrato';
@@ -20,11 +21,16 @@ app.post('/', (req, _, next) => {
 	next();
 });
 
-const accessLogStream = fs.createWriteStream(path.join(__dirname, '..', 'data', 'logs', 'access.log'), { flags: 'a' });
+const accessLogStream = fs.createWriteStream(path.join(__dirname, '..', 'data', 'logs', 'access.log'), {
+	flags: 'a',
+});
 app.use(
-	morgan(':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer"', {
-		stream: accessLogStream,
-	})
+	morgan(
+		':remote-addr - :remote-user [:date[clf]] ":method :url HTTP/:http-version" :status :res[content-length] ":referrer"',
+		{
+			stream: accessLogStream,
+		}
+	)
 );
 
 app.use(morgan('combined', { stream: accessLogStream }));
@@ -43,3 +49,29 @@ app.use('/faixa_etaria', faixa_etaria_router);
 app.use('/contratos', contratoRouter);
 app.use('/usuarios', usuariosRouter);
 app.use('/eventos', eventosRouter);
+
+const docs = getDocs();
+
+if (!docs) {
+	throw new Error('could not find documentation');
+}
+
+app.use('/docs', swaggerui.serve, swaggerui.setup(docs));
+
+export function getDocs() {
+	const file = fs.readFileSync('./data/openapi.json', {
+		encoding: 'utf8',
+	});
+
+	let jsonfile;
+	try {
+		jsonfile = JSON.parse(file);
+	} catch (err) {
+		logger.error('failed to parse', err);
+	}
+
+	if (!jsonfile) {
+		throw new Error('failed to parse json file');
+	}
+	return jsonfile;
+}

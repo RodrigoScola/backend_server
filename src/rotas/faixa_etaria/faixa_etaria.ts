@@ -3,16 +3,30 @@ import { Tspec } from 'tspec';
 import { connection } from '../../db';
 import { ContextBuilder } from '../../lib/context/ContextBuilder';
 import { ContextFactory } from '../../lib/context/DatabaseContext';
-import { BadRequestError, InternalError, InvalidItemError, NotFoundError } from '../../lib/ErrorHandling/ErrorHandler';
+import {
+	BadRequestError,
+	InternalError,
+	InvalidItemError,
+	NotFoundError,
+} from '../../lib/ErrorHandling/ErrorHandler';
 import { logger } from '../../server';
-import { ApiDeleteStatus, ApiGetStatus, ApiPostStatus, ApiUpdateStatus, QueryFilter } from '../../types/api_types';
+import {
+	ApiDeleteStatus,
+	ApiGetStatus,
+	ApiPostStatus,
+	ApiUpdateStatus,
+	QueryFilter,
+} from '../../types/api_types';
 import { FaixaEtaria, ItemStatus, NewFaixaEtaria } from '../../types/db_types';
 import { BoundsValidator } from '../../Validation/ItemValidation/BoundsValidator';
 import { ValidationCluster } from '../../Validation/ItemValidation/ItemValidationCluster';
 
 export const faixa_etaria_router = Router();
 
-async function getFaixas(req: Request<unknown, FaixaEtaria[], unknown, QueryFilter<FaixaEtaria>>, res: Response<FaixaEtaria[]>) {
+async function getFaixas(
+	req: Request<unknown, FaixaEtaria[], unknown, QueryFilter<FaixaEtaria>>,
+	res: Response<FaixaEtaria[]>
+) {
 	const faixa_etarias: FaixaEtaria[] = await ContextFactory.fromRequest(
 		'faixa_etaria',
 		connection('faixa_etaria').whereNot('status', ItemStatus.DELETADO),
@@ -24,7 +38,10 @@ async function getFaixas(req: Request<unknown, FaixaEtaria[], unknown, QueryFilt
 	res.json(faixa_etarias);
 }
 
-async function getFaixa(req: Request<{ id: string }, FaixaEtaria[], unknown, QueryFilter<FaixaEtaria>>, res: Response<FaixaEtaria[]>) {
+async function getFaixa(
+	req: Request<{ id: string }, FaixaEtaria[], unknown, QueryFilter<FaixaEtaria>>,
+	res: Response<FaixaEtaria[]>
+) {
 	assert.ok(req.params.id, 'Id Nao Especificado', BadRequestError);
 
 	const faixa_id = Number(req.params.id);
@@ -43,12 +60,17 @@ async function getFaixa(req: Request<{ id: string }, FaixaEtaria[], unknown, Que
 	res.json(faixa);
 }
 
-async function postaFaixa(req: Request<{ id: string }, FaixaEtaria, NewFaixaEtaria, QueryFilter<FaixaEtaria>>, res: Response<FaixaEtaria>) {
+async function postaFaixa(
+	req: Request<{ id: string }, FaixaEtaria, NewFaixaEtaria, QueryFilter<FaixaEtaria>>,
+	res: Response<FaixaEtaria>
+) {
 	assert.ok(req.body, 'Corpo da faixa etaria invalido', BadRequestError);
 
 	const cleaned = req.body;
 
-	const validator = new ValidationCluster().add(new BoundsValidator(NewFaixaEtaria, { min: -1, max: 832901803928 }));
+	const validator = new ValidationCluster().add(
+		new BoundsValidator(NewFaixaEtaria, { min: -1, max: 832901803928 })
+	);
 
 	if (!validator.isValid(cleaned)) {
 		const errors = validator.getErrors();
@@ -68,7 +90,10 @@ async function postaFaixa(req: Request<{ id: string }, FaixaEtaria, NewFaixaEtar
 	res.json(faixa_etaria);
 }
 
-async function updateFaixa(req: Request<{ id: string }, FaixaEtaria, NewFaixaEtaria, QueryFilter<FaixaEtaria>>, res: Response<FaixaEtaria>) {
+async function updateFaixa(
+	req: Request<{ id: string }, FaixaEtaria, NewFaixaEtaria, QueryFilter<FaixaEtaria>>,
+	res: Response<FaixaEtaria>
+) {
 	assert.ok(req.params.id, 'Id Nao Especificado', BadRequestError);
 
 	const faixa_id = Number(req.params.id);
@@ -87,7 +112,9 @@ async function updateFaixa(req: Request<{ id: string }, FaixaEtaria, NewFaixaEta
 
 	const cleaned = req.body;
 
-	const validator = new ValidationCluster().add(new BoundsValidator(NewFaixaEtaria, { min: -1, max: 832901803928 }));
+	const validator = new ValidationCluster().add(
+		new BoundsValidator(NewFaixaEtaria, { min: -1, max: 832901803928 })
+	);
 
 	if (!validator.isValid(cleaned)) {
 		const errors = validator.getErrors();
@@ -114,7 +141,10 @@ async function updateFaixa(req: Request<{ id: string }, FaixaEtaria, NewFaixaEta
 	res.json(faixa_etaria);
 }
 
-async function deletaFaixa(req: Request<{ id: string }, boolean, NewFaixaEtaria, QueryFilter<FaixaEtaria>>, res: Response<boolean>) {
+async function deletaFaixa(
+	req: Request<{ id: string }, boolean, NewFaixaEtaria, QueryFilter<FaixaEtaria>>,
+	res: Response<boolean>
+) {
 	assert.ok(req.params.id, 'Id Nao Especificado', BadRequestError);
 
 	const faixa_id = Number(req.params.id);
@@ -132,7 +162,10 @@ async function deletaFaixa(req: Request<{ id: string }, boolean, NewFaixaEtaria,
 
 	let deleted: FaixaEtaria | undefined;
 	try {
-		[deleted] = await connection('faixa_etaria').update('status', ItemStatus.DELETADO).where('id', faixa_id).returning('*');
+		[deleted] = await connection('faixa_etaria')
+			.update('status', ItemStatus.DELETADO)
+			.where('id', faixa_id)
+			.returning('*');
 	} catch (err) {
 		logger.error('nao pode deletar a faixa etaria', err);
 	}
@@ -140,10 +173,15 @@ async function deletaFaixa(req: Request<{ id: string }, boolean, NewFaixaEtaria,
 	res.json(Boolean(deleted));
 }
 
-faixa_etaria_router.get('/', getFaixas).get('/:id', getFaixa).post('/', postaFaixa).put('/:id', updateFaixa).delete('/:id', deletaFaixa);
+faixa_etaria_router
+	.get('/', getFaixas)
+	.get('/:id', getFaixa)
+	.post('/', postaFaixa)
+	.put('/:id', updateFaixa)
+	.delete('/:id', deletaFaixa);
 
-export type EventoDef = Tspec.DefineApiSpec<{
-	basePath: '/contratos';
+export type FaixaDef = Tspec.DefineApiSpec<{
+	basePath: '/faixa_etaria';
 	paths: {
 		'/': {
 			get: {

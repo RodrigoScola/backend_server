@@ -9,6 +9,7 @@ import {
 	InvalidItemError,
 	NotFoundError,
 } from '../../lib/ErrorHandling/ErrorHandler';
+import { addCategorias } from '../../lib/utils';
 import { logger } from '../../server';
 import {
 	ApiDeleteStatus,
@@ -23,13 +24,25 @@ import { ValidationCluster } from '../../Validation/ItemValidation/ItemValidatio
 
 export const localRouter = Router();
 
-async function pegaLocais(req: Request<unknown, Local[], unknown, QueryFilter<Local>>, res: Response<Local[]>) {
-	const Locais: Local[] = await ContextFactory.fromRequest(
-		'local',
-		connection('local').whereNot('status', ItemStatus.DELETADO),
-		req
-	)
-		.SetParameters(ContextBuilder.FromParameters(req.query, Local))
+async function pegaLocais(
+	req: Request<
+		unknown,
+		Local[],
+		unknown,
+		QueryFilter<
+			Omit<Local, 'categorias'> & {
+				categorias: number[];
+			}
+		>
+	>,
+	res: Response<Local[]>
+) {
+	const query = connection('local').whereNot('status', ItemStatus.DELETADO);
+
+	const parameters = ContextBuilder.FromParameters(addCategorias(req.query, query), Local);
+
+	const Locais: Local[] = await ContextFactory.fromRequest('local', query, req)
+		.SetParameters(parameters)
 		.Build();
 
 	res.json(Locais);
@@ -160,7 +173,7 @@ localRouter
 	.delete('/:id', deletaLocal);
 
 export type LocalDef = Tspec.DefineApiSpec<{
-	basePath: '/contratos';
+	basePath: '/locais';
 	paths: {
 		'/': {
 			get: {

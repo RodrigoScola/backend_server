@@ -4,16 +4,30 @@ import { Tspec } from 'tspec';
 import { connection } from '../../db';
 import { ContextBuilder } from '../../lib/context/ContextBuilder';
 import { ContextFactory } from '../../lib/context/DatabaseContext';
-import { BadRequestError, InternalError, InvalidItemError, NotFoundError } from '../../lib/ErrorHandling/ErrorHandler';
+import {
+	BadRequestError,
+	InternalError,
+	InvalidItemError,
+	NotFoundError,
+} from '../../lib/ErrorHandling/ErrorHandler';
 import { logger } from '../../server';
-import { ApiDeleteStatus, ApiGetStatus, ApiPostStatus, ApiUpdateStatus, QueryFilter } from '../../types/api_types';
+import {
+	ApiDeleteStatus,
+	ApiGetStatus,
+	ApiPostStatus,
+	ApiUpdateStatus,
+	QueryFilter,
+} from '../../types/api_types';
 import { Categoria, Category, ItemStatus, NewCategory } from '../../types/db_types';
 import { BoundsValidator } from '../../Validation/ItemValidation/BoundsValidator';
 import { ValidationCluster } from '../../Validation/ItemValidation/ItemValidationCluster';
 
 export const categoryRouter = Router();
 
-async function pegaCategorias(req: Request<unknown, Categoria[], unknown, QueryFilter<Categoria>>, res: Response<Categoria[]>) {
+async function pegaCategorias(
+	req: Request<unknown, Categoria[], unknown, QueryFilter<Categoria>>,
+	res: Response<Categoria[]>
+) {
 	const categories: Categoria[] = await ContextFactory.fromRequest(
 		'categorias',
 		connection('categorias').whereNot('status', ItemStatus.DELETADO),
@@ -48,7 +62,9 @@ async function postaCategoria(req: Request<ParamsDictionary, Categoria, NewCateg
 
 	const cleaned = req.body;
 
-	const validator = new ValidationCluster().add(new BoundsValidator(NewCategory, { min: -1, max: 832901803928 }));
+	const validator = new ValidationCluster().add(
+		new BoundsValidator(NewCategory, { min: -1, max: 832901803928 })
+	);
 
 	if (!validator.isValid(cleaned)) {
 		const errors = validator.getErrors();
@@ -87,7 +103,9 @@ async function UpdateCategoria(req: Request<ParamsDictionary, Categoria, Categor
 
 	const cleaned = req.body;
 
-	const validator = new ValidationCluster().add(new BoundsValidator(NewCategory, { min: -1, max: 832901803928 }));
+	const validator = new ValidationCluster().add(
+		new BoundsValidator(NewCategory, { min: -1, max: 832901803928 })
+	);
 
 	if (!validator.isValid(cleaned)) {
 		const errors = validator.getErrors();
@@ -101,7 +119,11 @@ async function UpdateCategoria(req: Request<ParamsDictionary, Categoria, Categor
 	let categoria: Categoria | undefined;
 
 	try {
-		[categoria] = await connection('categorias').update(cleaned).where('id', categoryId).whereNot('status', ItemStatus.DELETADO).returning('*');
+		[categoria] = await connection('categorias')
+			.update(cleaned)
+			.where('id', categoryId)
+			.whereNot('status', ItemStatus.DELETADO)
+			.returning('*');
 	} catch (err) {
 		logger.error('nao pode criar categoria', err);
 	}
@@ -128,7 +150,10 @@ async function DeletaCategoria(req: Request<{ id: string }>, res: Response<boole
 
 	let deleted: Categoria | undefined;
 	try {
-		[deleted] = await connection('categorias').update('status', ItemStatus.DELETADO).where('id', categoryId).returning('*');
+		[deleted] = await connection('categorias')
+			.update('status', ItemStatus.DELETADO)
+			.where('id', categoryId)
+			.returning('*');
 	} catch (err) {
 		logger.error('nao pode deletar a categoria', err);
 	}

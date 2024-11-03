@@ -9,6 +9,7 @@ import {
 	InvalidItemError,
 	NotFoundError,
 } from '../../lib/ErrorHandling/ErrorHandler';
+import { addCategorias } from '../../lib/utils';
 import { logger } from '../../server';
 import {
 	ApiDeleteStatus,
@@ -36,12 +37,12 @@ async function pegaEventos(
 	>,
 	res: Response<Evento[]>
 ) {
-	const eventos: Evento[] = await ContextFactory.fromRequest(
-		'eventos',
-		connection('eventos').whereNot('status', ItemStatus.DELETADO),
-		req
-	)
-		.SetParameters(ContextBuilder.FromParameters(req.query, Evento))
+	const query = connection('eventos').whereNot('status', ItemStatus.DELETADO);
+
+	const params = ContextBuilder.FromParameters(addCategorias(req.query, query), Evento);
+
+	const eventos: Evento[] = await ContextFactory.fromRequest('eventos', query, req)
+		.SetParameters(params)
 		.Build();
 
 	res.json(eventos);
@@ -187,7 +188,7 @@ eventosRouter
 	.delete('/:id', deletaEvento);
 
 export type EventoDef = Tspec.DefineApiSpec<{
-	basePath: '/contratos';
+	basePath: '/eventos';
 	paths: {
 		'/': {
 			get: {
